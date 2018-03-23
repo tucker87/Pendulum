@@ -1,0 +1,84 @@
+<canvas id="canvas" width="500" height="500"></canvas>
+<script>
+    window.onload = () => {
+        canvas = document.getElementById("canvas")
+        width = canvas.width
+        height = canvas.height
+        cx = width / 2
+        cy = height / 2
+        ctx = canvas.getContext("2d")
+        g = 1
+        p1 = { l: 100, x: 0, y: 0, a: {v: 0, a: 0, t: Math.PI/2} , m: 10 }
+        p2 = { l: 100, x: 0, y: 0, a: {v: 0, a: 0, t: Math.PI/4}, m: 10 }
+
+        setInterval(loop, 1000/30);
+    }
+
+    function loop() {
+        calcBaseAngle()
+        calcSecondAngle()
+        applyForces()
+        setPositions()
+        resetContext()
+        draw()
+    }
+
+    function calcBaseAngle() {
+        let part1 = -g * (2*p1.m+p2.m) * Math.sin(p1.a.t)
+        let part2 = -p2.m * g * Math.sin(p1.a.t-2*p2.a.t)
+        let part3 = -2*Math.sin(p1.a.t-p2.a.t)*p2.m
+        let part4 = p2.a.v*p2.a.v*p2.l+p1.a.v*p1.a.v*p1.l*Math.cos(p1.a.t-p2.a.t)
+        let den = p1.l * (2*p1.m+p2.m-p2.m*Math.cos(2*p1.a.t-2*p2.a.t))
+        p1.a.a = (part1+part2+part3*part4)/den
+    }
+
+    function calcSecondAngle() {
+        let part1 = 2 * Math.sin(p1.a.t-p2.a.t)
+        let part2 = (p1.a.v*p1.a.v*p1.l*(p1.m+p2.m))
+        let part3 = g*(p1.m+p2.m)*Math.cos(p1.a.t)
+        let part4 = p2.a.v*p2.a.v*p2.l*p2.m*Math.cos(p1.a.t-p2.a.t)
+        let den = p2.l * (2*p1.m+p2.m-p2.m*Math.cos(2*p1.a.t-2*p2.a.t))
+        p2.a.a = (part1*(part2+part3+part4))/den
+    }
+
+    function applyForces(){
+        p1.a.v += p1.a.a
+        p1.a.t += p1.a.v
+        p2.a.v += p2.a.a
+        p2.a.t += p2.a.v
+    }
+
+    function setPositions(){
+        p1.x = p1.l * Math.sin(p1.a.t);
+        p1.y = p1.l * Math.cos(p1.a.t);
+
+        p2.x = p1.x + p2.l * Math.sin(p2.a.t);
+        p2.y = p1.y + p2.l * Math.cos(p2.a.t);
+    }
+
+    function resetContext(){
+        ctx.resetTransform()
+        ctx.fillStyle = 'red'
+        ctx.fillRect(0, 0, width, height);
+    }
+
+    function draw(){
+        ctx.strokeStyle = 'black'
+        ctx.translate(cx, cy);
+
+        ctx.beginPath()
+        ctx.moveTo(0, 0)                
+        ctx.lineTo(p1.x, p1.y)
+        ctx.lineTo(p2.x, p2.y)
+        ctx.stroke()
+        
+        ctx.fillStyle = 'black'
+        ctx.beginPath()
+        ctx.arc(p1.x,p1.y,p1.m,0,2*Math.PI)
+        ctx.fill()
+
+        ctx.beginPath()
+        ctx.arc(p2.x,p2.y,p2.m,0,2*Math.PI)
+        ctx.fill()
+    }
+</script>
