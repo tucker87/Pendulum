@@ -1,4 +1,4 @@
-<canvas id="canvas" width="500" height="500"></canvas>
+<canvas id="canvas" width="750" height="750"></canvas>
 <script>
     window.onload = () => {
         canvas = document.getElementById("canvas")
@@ -8,15 +8,19 @@
         cy = height / 2
         ctx = canvas.getContext("2d")
         g = 1
-        p1 = { l: 100, x: 0, y: 0, a: {v: 0, a: 0, t: Math.PI/2} , m: 10 }
-        p2 = { l: 100, x: 0, y: 0, a: {v: 0, a: 0, t: Math.PI/4}, m: 10 }
-
+        pend1 = { length: 100, x: 0, y: 0, angle: {velocity: 0, accel: 0, theta: Math.PI/2} , mass: 10 }
+        pend2 = { parent: pend1, length: 100, x: 0, y: 0, angle: {velocity: 0, accel: 0, theta: Math.PI/4}, mass: 10 }
+        pend3 = { parent: pend2, length: 100, x: 0, y: 0, angle: {velocity: 0, accel: 0, theta: Math.PI/4}, mass: 10 }
+        pends = [pend1, pend2, pend3]
         setInterval(loop, 1000/30);
     }
 
     function loop() {
         calcBaseAngle()
-        calcSecondAngle()
+        pends.forEach(pend => {
+            if(pend.parent)
+                calcChildAngle(pend, pend.parent)
+        });
         applyForces()
         setPositions()
         resetContext()
@@ -24,36 +28,40 @@
     }
 
     function calcBaseAngle() {
-        let part1 = -g * (2*p1.m+p2.m) * Math.sin(p1.a.t)
-        let part2 = -p2.m * g * Math.sin(p1.a.t-2*p2.a.t)
-        let part3 = -2*Math.sin(p1.a.t-p2.a.t)*p2.m
-        let part4 = p2.a.v*p2.a.v*p2.l+p1.a.v*p1.a.v*p1.l*Math.cos(p1.a.t-p2.a.t)
-        let den = p1.l * (2*p1.m+p2.m-p2.m*Math.cos(2*p1.a.t-2*p2.a.t))
-        p1.a.a = (part1+part2+part3*part4)/den
+        let part1 = -g * (2*pend1.mass+pend2.mass) * Math.sin(pend1.angle.theta)
+        let part2 = -pend2.mass * g * Math.sin(pend1.angle.theta-2*pend2.angle.theta)
+        let part3 = -2*Math.sin(pend1.angle.theta-pend2.angle.theta)*pend2.mass
+        let part4 = pend2.angle.velocity*pend2.angle.velocity*pend2.length+pend1.angle.velocity*pend1.angle.velocity*pend1.length*Math.cos(pend1.angle.theta-pend2.angle.theta)
+        let den = pend1.length * (2*pend1.mass+pend2.mass-pend2.mass*Math.cos(2*pend1.angle.theta-2*pend2.angle.theta))
+        pend1.angle.accel = (part1+part2+part3*part4)/den
     }
 
-    function calcSecondAngle() {
-        let part1 = 2 * Math.sin(p1.a.t-p2.a.t)
-        let part2 = (p1.a.v*p1.a.v*p1.l*(p1.m+p2.m))
-        let part3 = g*(p1.m+p2.m)*Math.cos(p1.a.t)
-        let part4 = p2.a.v*p2.a.v*p2.l*p2.m*Math.cos(p1.a.t-p2.a.t)
-        let den = p2.l * (2*p1.m+p2.m-p2.m*Math.cos(2*p1.a.t-2*p2.a.t))
-        p2.a.a = (part1*(part2+part3+part4))/den
+    function calcChildAngle(child, parent) {
+        let part1 = 2 * Math.sin(parent.angle.theta-child.angle.theta)
+        let part2 = (parent.angle.velocity*parent.angle.velocity*parent.length*(parent.mass+child.mass))
+        let part3 = g*(parent.mass+child.mass)*Math.cos(parent.angle.theta)
+        let part4 = child.angle.velocity*child.angle.velocity*child.length*child.mass*Math.cos(parent.angle.theta-child.angle.theta)
+        let den = child.length * (2*parent.mass+child.mass-child.mass*Math.cos(2*parent.angle.theta-2*child.angle.theta))
+        child.angle.accel = (part1*(part2+part3+part4))/den
     }
 
     function applyForces(){
-        p1.a.v += p1.a.a
-        p1.a.t += p1.a.v
-        p2.a.v += p2.a.a
-        p2.a.t += p2.a.v
+        pends.forEach(pend => {
+            pend.angle.velocity += pend.angle.accel
+            pend.angle.theta += pend.angle.velocity
+        })
     }
 
     function setPositions(){
-        p1.x = p1.l * Math.sin(p1.a.t);
-        p1.y = p1.l * Math.cos(p1.a.t);
-
-        p2.x = p1.x + p2.l * Math.sin(p2.a.t);
-        p2.y = p1.y + p2.l * Math.cos(p2.a.t);
+        pend1.x = pend1.length * Math.sin(pend1.angle.theta);
+        pend1.y = pend1.length * Math.cos(pend1.angle.theta);
+        
+        pends.forEach(pend =>{
+            if(pend.parent){
+                pend.x = pend.parent.x + pend.length * Math.sin(pend.angle.theta);
+                pend.y = pend.parent.y + pend.length * Math.cos(pend.angle.theta);
+            }
+        })
     }
 
     function resetContext(){
@@ -67,18 +75,15 @@
         ctx.translate(cx, cy);
 
         ctx.beginPath()
-        ctx.moveTo(0, 0)                
-        ctx.lineTo(p1.x, p1.y)
-        ctx.lineTo(p2.x, p2.y)
+        ctx.moveTo(0, 0)
+        pends.forEach(pend => ctx.lineTo(pend.x, pend.y))
         ctx.stroke()
         
         ctx.fillStyle = 'black'
-        ctx.beginPath()
-        ctx.arc(p1.x,p1.y,p1.m,0,2*Math.PI)
-        ctx.fill()
-
-        ctx.beginPath()
-        ctx.arc(p2.x,p2.y,p2.m,0,2*Math.PI)
-        ctx.fill()
+        pends.forEach(pend => {
+            ctx.beginPath()
+            ctx.arc(pend.x,pend.y,pend.mass,0,2*Math.PI)
+            ctx.fill()
+        })
     }
 </script>
