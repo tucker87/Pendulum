@@ -62,12 +62,12 @@
         root.x = root.length * Math.sin(root.angle.theta);
         root.y = root.length * Math.cos(root.angle.theta);
         
-        pends.forEach(pend =>{
-            if(pend.parent){
+        pends
+            .filter(pend => pend.parent)
+            .forEach(pend =>{
                 pend.x = pend.parent.x + pend.length * Math.sin(pend.angle.theta);
                 pend.y = pend.parent.y + pend.length * Math.cos(pend.angle.theta);
-            }
-        })
+            })
     }
 
     function resetContext(){
